@@ -3,12 +3,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../data/models/transaction_model.dart';
 import '../../shared/widgets/bento_section.dart';
-import '../../shared/widgets/category_pie.dart';
 import '../../shared/widgets/expense_list.dart';
 import '../../shared/widgets/header_section.dart';
-import '../../shared/widgets/month_selector.dart';
 import '../../shared/widgets/search_bar.dart';
 import '../../shared/widgets/expense_bottom_sheet.dart';
+import '../charts/report_screen.dart';
+import 'insights_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,10 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Transaction> filteredList() {
     return box.values
-        .where((t) =>
-    t.date.month == selectedMonth.month &&
-        t.date.year == selectedMonth.year &&
-        t.title.toLowerCase().contains(searchQuery.toLowerCase()))
+        .where(
+          (t) =>
+      t.date.month == selectedMonth.month &&
+          t.date.year == selectedMonth.year &&
+          t.title.toLowerCase().contains(searchQuery.toLowerCase()),
+    )
         .toList()
         .reversed
         .toList();
@@ -65,10 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      drawer: _buildDrawer(),
 
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF7B5CFA),
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
           if (monthlyBudget == null && box.isEmpty) {
@@ -84,39 +86,215 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
 
-      body: SafeArea(
-        child: AnimatedBuilder(
-          animation: Listenable.merge([box.listenable(), budgetBox.listenable()]),
-          builder: (_, __) {
-            final spent = total('Monthly');
-            final percent = monthlyBudget == null
-                ? 0.0
-                : (spent / monthlyBudget!).clamp(0.0, 1.0);
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1C1B2E), Color(0xFF2A2747)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: AnimatedBuilder(
+            animation:
+            Listenable.merge([box.listenable(), budgetBox.listenable()]),
+            builder: (_, __) {
+              final spent = total('Monthly');
+              final percent = monthlyBudget == null
+                  ? 0.0
+                  : (spent / monthlyBudget!).clamp(0.0, 1.0);
 
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+              return Column(
                 children: [
-                  MonthSelector(
-                    selectedMonth: selectedMonth,
-                    onChange: (d) => setState(() => selectedMonth = d),
+                  _buildHeader(),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1C1B2E),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(28),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          HeaderSection(spent, monthlyBudget, percent),
+                          const SizedBox(height: 16),
+                          BentoSection(total),
+                          const SizedBox(height: 20),
+                          SearchBar(
+                            onChange: (v) =>
+                                setState(() => searchQuery = v),
+                          ),
+                          const SizedBox(height: 12),
+                          Expanded(child: ExpenseList(filteredList())),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  HeaderSection(spent, monthlyBudget, percent),
-                  const SizedBox(height: 20),
-                  BentoSection(total),
-                  const SizedBox(height: 20),
-                  SearchBar(onChange: (v) => setState(() => searchQuery = v)),
-                  const SizedBox(height: 10),
-                  Expanded(child: ExpenseList(filteredList())),
-                  const SizedBox(height: 10),
-                  CategoryPie(selectedMonth),
                 ],
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+
+  // 🔷 HEADER
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF6A5AE0), Color(0xFF9D4EDD)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        children: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                "Welcome back 👋",
+                style: TextStyle(color: Colors.white70),
+              ),
+              SizedBox(height: 4),
+              Text(
+                "Vikas",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          const CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.white24,
+            child: Icon(Icons.person, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔷 DRAWER
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1C1B2E), Color(0xFF2A2747)],
+          ),
+        ),
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6A5AE0), Color(0xFF9D4EDD)],
+                ),
+              ),
+              child: Row(
+                children: const [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white24,
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                  SizedBox(width: 12),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Vikas Shetty",
+                          style: TextStyle(color: Colors.white)),
+                      Text("Expense Tracker",
+                          style: TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+
+            _drawerItem(
+              Icons.lightbulb,
+              "Insights",
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const InsightsScreen(),
+                  ),
+                );
+              },
+            ),
+            _drawerItem(
+              Icons.account_balance_wallet,
+              "Set Budget",
+
+            ),
+
+            _drawerItem(
+              Icons.bar_chart,
+              "Reports",
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ReportsScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const Spacer(),
+
+            _drawerItem(
+              Icons.logout,
+              "Logout",
+              isLogout: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔷 DRAWER ITEM
+  Widget _drawerItem(
+      IconData icon,
+      String title, {
+        bool isLogout = false,
+        VoidCallback? onTap,
+      }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isLogout ? Colors.red : Colors.white70,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isLogout ? Colors.red : Colors.white,
+        ),
+      ),
+      onTap: onTap ?? () => Navigator.pop(context),
     );
   }
 }

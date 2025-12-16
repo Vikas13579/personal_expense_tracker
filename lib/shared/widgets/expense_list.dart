@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -15,14 +16,16 @@ class ExpenseList extends StatelessWidget {
       return const Center(
         child: Text(
           "No expenses found 💸",
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Colors.white70, fontSize: 16),
         ),
       );
     }
 
     final box = Hive.box<Transaction>('transactions');
+    final messenger = ScaffoldMessenger.of(context);
 
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
       itemCount: list.length,
       itemBuilder: (_, i) {
         final t = list[i];
@@ -32,7 +35,7 @@ class ExpenseList extends StatelessWidget {
           direction: DismissDirection.endToStart,
 
           onDismissed: (_) {
-            // 1️⃣ COPY data (NOT HiveObject)
+            // 🔒 Create safe copy (HiveObject must not be reused)
             final deletedCopy = Transaction(
               title: t.title,
               amount: t.amount,
@@ -40,47 +43,98 @@ class ExpenseList extends StatelessWidget {
               category: t.category,
             );
 
-            // 2️⃣ Capture index BEFORE delete
             final deletedIndex = box.values.toList().indexOf(t);
 
-            // 3️⃣ Delete original HiveObject
+            // Delete original
             t.delete();
 
-            // 4️⃣ Show snackbar with REAL undo
-            ScaffoldMessenger.of(context).clearSnackBars();
-            ScaffoldMessenger.of(context).showSnackBar(
+            // Ensure only one snackbar exists
+            messenger.clearSnackBars();
+
+            // Show snackbar (BOTTOM, Material default)
+            messenger.showSnackBar(
               SnackBar(
                 content: const Text("Expense deleted"),
-                duration: const Duration(seconds: 3),
+                duration: const Duration(seconds: 5), // visual hint
                 action: SnackBarAction(
                   label: "UNDO",
                   onPressed: () {
-                    // Restore safely
                     if (deletedIndex >= box.length) {
                       box.add(deletedCopy);
                     } else {
                       box.putAt(deletedIndex, deletedCopy);
                     }
+
+                    // Close immediately on undo
+                    messenger.hideCurrentSnackBar(
+                      reason: SnackBarClosedReason.action,
+                    );
                   },
                 ),
               ),
             );
+
+            // 🧨 HARD STOP — guarantees max 5 seconds
+            Timer(const Duration(seconds: 5), () {
+              messenger.hideCurrentSnackBar(
+                reason: SnackBarClosedReason.timeout,
+              );
+            });
           },
 
           background: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             alignment: Alignment.centerRight,
-            color: Colors.red,
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(16),
+            ),
             padding: const EdgeInsets.only(right: 20),
             child: const Icon(Icons.delete, color: Colors.white),
           ),
 
-          child: ListTile(
-            onLongPress: () => showExpenseSheet(context, edit: t),
-            title: Text(t.title),
-            subtitle: Text(t.category),
-            trailing: Text(
-              "-₹${t.amount.toInt()}",
-              style: const TextStyle(color: Colors.red),
+          child: Card(
+            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            color: Colors.white,
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ListTile(
+              contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+              onLongPress: () => showExpenseSheet(context, edit: t),
+
+              leading: CircleAvatar(
+                backgroundColor: Colors.deepPurple.withOpacity(0.1),
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: Colors.deepPurple,
+                ),
+              ),
+
+              title: Text(
+                t.title,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              subtitle: Text(
+                t.category,
+                style: const TextStyle(color: Colors.black54),
+              ),
+
+              trailing: Text(
+                "-₹${t.amount.toInt()}",
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
             ),
           ),
         );

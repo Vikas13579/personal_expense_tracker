@@ -1,27 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:personal_expense_tracker/views/home/home_screen.dart';
-import 'core/hive/hive_Service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:personal_expense_tracker/views/home/dashboard_screen.dart';
+import 'package:provider/provider.dart';
 
+import 'data/models/transaction_model.dart';
+import 'data/models/dashboard_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await HiveService.init();
-  runApp(const UltimateExpenseApp());
+
+  await Hive.initFlutter();
+
+  if (!Hive.isAdapterRegistered(0)) {
+    Hive.registerAdapter(TransactionAdapter());
+  }
+
+  await Hive.openBox<Transaction>('transactions');
+  await Hive.openBox<double>('budget');
+  await Hive.openBox<String>('meta');
+
+  await Hive.openBox<bool>('settings');
+
+  runApp(const MyApp());
 }
 
-class UltimateExpenseApp extends StatelessWidget {
-  const UltimateExpenseApp({super.key});
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(),
+    return ChangeNotifierProvider(
+      create: (_) => DashboardViewModel(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData.dark(),
+        home: DashboardScreen(),
       ),
-      home: const HomeScreen(),
     );
   }
 }

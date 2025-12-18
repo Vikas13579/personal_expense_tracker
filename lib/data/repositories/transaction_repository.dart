@@ -1,22 +1,38 @@
-import '../../core/hive/hive_boxes.dart';
+import 'package:hive/hive.dart';
+
 import '../models/transaction_model.dart';
 
 class TransactionRepository {
-  final _box = HiveBoxes.transactions();
+  final _box = Hive.box<Transaction>('transactions');
 
-  List<Transaction> all() => _box.values.toList();
+  List<Transaction> getAll() =>
+      _box.values.toList().reversed.toList();
 
-  void add(Transaction tx) => _box.add(tx);
+  int indexOf(Transaction tx) {
+    return _box.values.toList().indexOf(tx);
+  }
 
-  void update(Transaction tx) => tx.save();
+  void add(Transaction tx) {
+    _box.add(tx);
+  }
 
-  void delete(Transaction tx) => tx.delete();
+  void insertAt(int? index, Transaction tx) {
+    if (index == null || index < 0 || index >= _box.length) {
+      _box.add(tx);
+    } else {
+      _box.putAt(index, tx);
+    }
+  }
 
-  void undoDelete(Transaction tx) => _box.add(tx);
+  void delete(Transaction tx) {
+    tx.delete();
+  }
 
-  List<Transaction> byMonth(DateTime month) {
-    return _box.values.where((t) =>
-    t.date.month == month.month &&
-        t.date.year == month.year).toList();
+  double totalForMonth(DateTime date) {
+    return _box.values
+        .where((t) =>
+    t.date.month == date.month &&
+        t.date.year == date.year)
+        .fold(0.0, (sum, t) => sum + t.amount);
   }
 }

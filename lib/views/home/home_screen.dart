@@ -249,19 +249,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
             ),
 
-            _drawerItem(
-              Icons.bar_chart,
-              "Reports",
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ReportsScreen(),
-                  ),
-                );
-              },
-            ),
+            // _drawerItem(
+            //   Icons.bar_chart,
+            //   "Reports",
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(
+            //         builder: (_) => const ReportsScreen(),
+            //       ),
+            //     );
+            //   },
+            // ),
 
             const Spacer(),
 

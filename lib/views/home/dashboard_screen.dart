@@ -21,7 +21,6 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF1C1B2E),
 
-      // ✅ DRAWER IS HERE
       drawer: _buildDrawer(context),
 
       appBar: AppBar(
